@@ -1,66 +1,66 @@
 import streamlit as st
 import pandas as pd
+from collections import Counter
 
-# Blackjack Strategy Tool
-def calculate_best_action(player_total, dealer_card, has_ace, can_split):
-    """
-    Calculate the best action based on player's total, dealer's card, 
-    whether the player has an ace, and if splitting is an option.
-    """
-    if player_total >= 17:
-        return "Stand"
-    elif 13 <= player_total <= 16:
-        if dealer_card >= 7:
-            return "Hit"
-        else:
-            return "Stand"
-    elif player_total == 12:
-        if dealer_card in [4, 5, 6]:
-            return "Stand"
-        else:
-            return "Hit"
-    elif 9 <= player_total <= 11:
-        if player_total == 11 or (player_total == 10 and dealer_card <= 9):
-            return "Double Down"
-        else:
-            return "Hit"
-    elif player_total <= 8:
-        return "Hit"
-    
-    # Special cases
-    if has_ace:
-        if player_total + 10 <= 21:
-            return "Hit" if dealer_card >= 7 else "Stand"
+# Initialize the deck
+def initialize_deck():
+    return Counter({
+        2: 4, 3: 4, 4: 4, 5: 4, 6: 4, 7: 4, 8: 4, 9: 4, 10: 16, 11: 4
+    })
 
-    if can_split:
-        return "Split" if player_total in [16, 18] else "Hit"
+# Calculate probabilities
+def calculate_probabilities(deck, dealer_card, desired_cards):
+    total_cards = sum(deck.values())
+    dealer_outcome_probabilities = {}
 
-    return "Stand"
+    # Calculate dealer's possible outcomes
+    for card, count in deck.items():
+        if count > 0:
+            dealer_total = dealer_card + card
+            if dealer_total > 21 and dealer_card == 11:  # Convert Ace to 1 if bust
+                dealer_total -= 10
+            dealer_outcome_probabilities[dealer_total] = dealer_outcome_probabilities.get(dealer_total, 0) + count / total_cards
+
+    # Calculate probabilities for desired cards
+    desired_card_probabilities = {
+        card: deck[card] / total_cards if deck[card] > 0 else 0 for card in desired_cards
+    }
+
+    return dealer_outcome_probabilities, desired_card_probabilities
 
 # Streamlit App
-st.title("Blackjack Strategy Tool")
+st.title("Advanced Blackjack Strategy Tool")
 
 # Inputs
-st.header("Player's Hand")
-player_total = st.number_input("Total Value of Your Hand", min_value=2, max_value=21, step=1)
-has_ace = st.checkbox("Do you have an Ace?")
-can_split = st.checkbox("Can you split?")
+st.header("Player's Inputs")
+deck = initialize_deck()
+player_hand_total = st.number_input("Your Hand Total", min_value=2, max_value=21, step=1)
+dealer_card = st.number_input("Dealer's Shown Card", min_value=2, max_value=11, step=1)
+desired_cards = st.multiselect("Cards You Want to Draw", options=list(deck.keys()))
+cards_to_exclude = st.multiselect("Cards You Don't Want to Draw", options=list(deck.keys()))
 
-st.header("Dealer's Hand")
-dealer_card = st.number_input("Dealer's Card Value", min_value=2, max_value=11, step=1)
+# Adjust the deck based on user's choices
+for card in cards_to_exclude:
+    deck[card] = 0
 
-# Calculate the best action
-if st.button("Get Best Action"):
-    best_action = calculate_best_action(player_total, dealer_card, has_ace, can_split)
-    st.subheader(f"Recommended Action: {best_action}")
+# Calculate probabilities
+if st.button("Calculate Probabilities"):
+    dealer_probs, desired_probs = calculate_probabilities(deck, dealer_card, desired_cards)
+
+    st.subheader("Dealer's Outcome Probabilities")
+    dealer_probs_df = pd.DataFrame(dealer_probs.items(), columns=["Dealer Total", "Probability"])
+    st.table(dealer_probs_df)
+
+    st.subheader("Desired Card Probabilities")
+    desired_probs_df = pd.DataFrame(desired_probs.items(), columns=["Card", "Probability"])
+    st.table(desired_probs_df)
 
 # Blackjack Rules
 st.sidebar.header("Blackjack Rules")
 st.sidebar.write(
-    """This tool uses basic blackjack strategy based on the following rules:
-    - Stand on 17 or higher.
-    - Hit on 12-16 if dealer has 7 or higher.
-    - Always hit on 8 or below.
-    - Double down on 10 or 11 if possible.
-    - Split pairs of 8 or aces.
-    - Adjust based on whether you have an ace or can split.""")
+    """This tool incorporates advanced blackjack strategy based on probabilities:
+    - Probabilities of dealer outcomes based on remaining cards in the deck.
+    - Probability of drawing specific cards you want.
+    - Ability to exclude cards from the deck.
+    """
+)
