@@ -11,6 +11,9 @@ def initialize_deck():
 # Calculate probabilities
 def calculate_probabilities(deck, dealer_card, desired_cards):
     total_cards = sum(deck.values())
+    if total_cards == 0:
+        return {}, {}
+
     dealer_outcome_probabilities = {}
 
     # Calculate dealer's possible outcomes
@@ -21,9 +24,14 @@ def calculate_probabilities(deck, dealer_card, desired_cards):
                 dealer_total -= 10
             dealer_outcome_probabilities[dealer_total] = dealer_outcome_probabilities.get(dealer_total, 0) + count / total_cards
 
+    # Normalize probabilities for dealer outcomes
+    total_dealer_prob = sum(dealer_outcome_probabilities.values())
+    for key in dealer_outcome_probabilities:
+        dealer_outcome_probabilities[key] /= total_dealer_prob
+
     # Calculate probabilities for desired cards
     desired_card_probabilities = {
-        card: deck[card] / total_cards if deck[card] > 0 else 0 for card in desired_cards
+        card: (deck[card] / total_cards if deck[card] > 0 else 0) for card in desired_cards
     }
 
     return dealer_outcome_probabilities, desired_card_probabilities
