@@ -20,14 +20,9 @@ def calculate_probabilities(deck, dealer_card, desired_cards):
     for card, count in deck.items():
         if count > 0:
             dealer_total = dealer_card + card
-            if dealer_total > 21 and dealer_card == 11:  # Convert Ace to 1 if bust
+            if dealer_total > 21 and card == 11:  # Convert Ace to 1 if bust
                 dealer_total -= 10
             dealer_outcome_probabilities[dealer_total] = dealer_outcome_probabilities.get(dealer_total, 0) + count / total_cards
-
-    # Normalize probabilities for dealer outcomes
-    total_dealer_prob = sum(dealer_outcome_probabilities.values())
-    for key in dealer_outcome_probabilities:
-        dealer_outcome_probabilities[key] /= total_dealer_prob
 
     # Calculate probabilities for desired cards
     desired_card_probabilities = {
@@ -57,10 +52,12 @@ if st.button("Calculate Probabilities"):
 
     st.subheader("Dealer's Outcome Probabilities")
     dealer_probs_df = pd.DataFrame(dealer_probs.items(), columns=["Dealer Total", "Probability"])
+    dealer_probs_df["Probability"] = dealer_probs_df["Probability"].apply(lambda x: round(x, 3))  # Round probabilities
     st.table(dealer_probs_df)
 
     st.subheader("Desired Card Probabilities")
     desired_probs_df = pd.DataFrame(desired_probs.items(), columns=["Card", "Probability"])
+    desired_probs_df["Probability"] = desired_probs_df["Probability"].apply(lambda x: round(x, 3))  # Round probabilities
     st.table(desired_probs_df)
 
 # Blackjack Rules
